@@ -3,24 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tipping Points</title>
+    <title>Tipping Points Demo</title>
     <meta
       name="description"
-      content="Starter GitHub Pages site for the Tipping Points repository."
+      content="Interactive tipping-point animation for dx/dt = x - x^3 + p."
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="hero">
-      <p class="eyebrow">GitHub Pages Starter</p>
-      <h1>Tipping Points</h1>
-      <p class="intro">
-        This is a dummy homepage to confirm the repository is serving a static
-        site correctly.
-      </p>
-      <a class="button" href="https://github.com/" target="_blank" rel="noreferrer">
-        View on GitHub
-      </a>
+    <main class="page">
+      <section class="intro">
+        <p class="eyebrow">Interactive Demo 01</p>
+        <h1>Tipping Point in a One-Dimensional ODE</h1>
+        <p class="lede">
+          Explore the system <code>dx/dt = x - x^3 + p</code>. Use the controls
+          to vary <code>p</code> and watch the state track the stable branch
+          until the negative equilibrium disappears.
+        </p>
+      </section>
+
+      <section class="controls" aria-label="Parameter controls">
+        <button id="decrease-p" class="control-button" type="button">Decrease p</button>
+        <div class="readout">
+          <span class="label">Parameter</span>
+          <strong id="p-value">0.000</strong>
+        </div>
+        <div class="readout">
+          <span class="label">State</span>
+          <strong id="x-value">0.000</strong>
+        </div>
+        <button id="increase-p" class="control-button" type="button">Increase p</button>
+        <button id="reset-system" class="ghost-button" type="button">Reset</button>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Flow Field</h2>
+              <p>Curve of <code>f(x) = x - x^3 + p</code> with the current state marked on the x-axis.</p>
+            </div>
+          </div>
+          <canvas
+            id="rhs-canvas"
+            class="plot"
+            width="720"
+            height="420"
+            aria-label="Plot of x minus x cubed plus p"
+          ></canvas>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Time Series</h2>
+              <p>History of the evolving state <code>x(t)</code> and the parameter <code>p(t)</code>.</p>
+            </div>
+          </div>
+          <canvas
+            id="timeseries-canvas"
+            class="plot"
+            width="720"
+            height="420"
+            aria-label="Time series plot of x and p"
+          ></canvas>
+        </article>
+      </section>
     </main>
+
+    <script src="script.js"></script>
   </body>
 </html>
