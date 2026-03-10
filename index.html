@@ -12,62 +12,144 @@
   </head>
   <body>
     <main class="page">
-      <section class="intro">
-        <p class="eyebrow">Interactive Demo 01</p>
-        <h1>Tipping Point in a One-Dimensional ODE</h1>
+      <header class="site-header">
+        <p class="eyebrow">Tipping Points</p>
+        <h1>Interactive Climate Threshold Demos</h1>
         <p class="lede">
-          Explore the system <code>dx/dt = x - x^3 + p</code>. Use the controls
-          to vary <code>p</code> and watch the state track the stable branch
-          until the negative equilibrium disappears.
+          Two interactive systems show how slow forcing can push a nonlinear
+          climate variable toward a sudden transition.
         </p>
+      </header>
+
+      <section class="demo-section" aria-labelledby="demo-1-title">
+        <div class="section-copy">
+          <p class="section-tag">Interactive Demo 01</p>
+          <h2 id="demo-1-title">One-Dimensional Tipping Point</h2>
+          <p>
+            Explore <code>dx/dt = x - x^3 + p</code>. Use the controls to vary
+            <code>p</code> and watch the state track the stable branch until the
+            negative equilibrium disappears.
+          </p>
+        </div>
+
+        <section class="controls" aria-label="Parameter controls">
+          <button id="toggle-demo-1" class="ghost-button" type="button">Stop</button>
+          <button id="decrease-p" class="control-button" type="button">Decrease p</button>
+          <div class="readout">
+            <span class="label">Parameter</span>
+            <strong id="p-value">0.000</strong>
+          </div>
+          <div class="readout">
+            <span class="label">State</span>
+            <strong id="x-value">0.000</strong>
+          </div>
+          <button id="increase-p" class="control-button" type="button">Increase p</button>
+          <button id="reset-system" class="ghost-button" type="button">Reset</button>
+        </section>
+
+        <section class="grid">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Flow Field</h3>
+                <p>Curve of <code>f(x) = x - x^3 + p</code> with the current state marked on the x-axis.</p>
+              </div>
+            </div>
+            <canvas
+              id="rhs-canvas"
+              class="plot"
+              width="720"
+              height="420"
+              aria-label="Plot of x minus x cubed plus p"
+            ></canvas>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Time Series</h3>
+                <p>History of the evolving state <code>x(t)</code> and the parameter <code>p(t)</code>.</p>
+              </div>
+            </div>
+            <canvas
+              id="timeseries-canvas"
+              class="plot"
+              width="720"
+              height="420"
+              aria-label="Time series plot of x and p"
+            ></canvas>
+          </article>
+        </section>
       </section>
 
-      <section class="controls" aria-label="Parameter controls">
-        <button id="decrease-p" class="control-button" type="button">Decrease p</button>
-        <div class="readout">
-          <span class="label">Parameter</span>
-          <strong id="p-value">0.000</strong>
+      <section class="demo-section" aria-labelledby="demo-2-title">
+        <div class="section-copy">
+          <p class="section-tag">Interactive Demo 02</p>
+          <h2 id="demo-2-title">Emissions, CO2, and Arctic Sea Ice</h2>
+          <p>
+            Here emissions <code>E</code> build atmospheric CO2 via
+            <code>dC/dt = E - k(C - C0)</code>. A normalized CO2 level then acts
+            like the forcing parameter in a cubic ice-loss model, while the ice
+            animation shows annual growth and melt around a shrinking mean state.
+          </p>
         </div>
-        <div class="readout">
-          <span class="label">State</span>
-          <strong id="x-value">0.000</strong>
-        </div>
-        <button id="increase-p" class="control-button" type="button">Increase p</button>
-        <button id="reset-system" class="ghost-button" type="button">Reset</button>
-      </section>
 
-      <section class="grid">
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <h2>Flow Field</h2>
-              <p>Curve of <code>f(x) = x - x^3 + p</code> with the current state marked on the x-axis.</p>
-            </div>
+        <section class="controls" aria-label="Emissions controls">
+          <button id="toggle-demo-2" class="ghost-button" type="button">Stop</button>
+          <button id="decrease-emissions" class="control-button climate-button" type="button">
+            Decrease emissions
+          </button>
+          <div class="readout">
+            <span class="label">Emissions</span>
+            <strong id="emissions-value">0.0 GtC/yr</strong>
           </div>
-          <canvas
-            id="rhs-canvas"
-            class="plot"
-            width="720"
-            height="420"
-            aria-label="Plot of x minus x cubed plus p"
-          ></canvas>
-        </article>
+          <div class="readout">
+            <span class="label">CO2</span>
+            <strong id="co2-value">0 ppm</strong>
+          </div>
+          <div class="readout">
+            <span class="label">Sea Ice</span>
+            <strong id="ice-value">0.0 million km²</strong>
+          </div>
+          <button id="increase-emissions" class="control-button climate-button" type="button">
+            Increase emissions
+          </button>
+          <button id="reset-climate" class="ghost-button" type="button">Reset climate</button>
+        </section>
 
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <h2>Time Series</h2>
-              <p>History of the evolving state <code>x(t)</code> and the parameter <code>p(t)</code>.</p>
+        <section class="grid climate-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Climate Time Series</h3>
+                <p>Scrolling history of emissions, atmospheric CO2 concentration, and annual mean Arctic sea-ice area.</p>
+              </div>
             </div>
-          </div>
-          <canvas
-            id="timeseries-canvas"
-            class="plot"
-            width="720"
-            height="420"
-            aria-label="Time series plot of x and p"
-          ></canvas>
-        </article>
+            <canvas
+              id="climate-timeseries-canvas"
+              class="plot"
+              width="720"
+              height="420"
+              aria-label="Time series of emissions carbon dioxide and sea ice"
+            ></canvas>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Arctic Sea Ice Cycle</h3>
+                <p>The annual ice edge expands in winter and retreats in summer, while the mean circumference shrinks as the system warms.</p>
+              </div>
+            </div>
+            <canvas
+              id="ice-animation-canvas"
+              class="plot"
+              width="720"
+              height="420"
+              aria-label="Animated Arctic sea ice"
+            ></canvas>
+          </article>
+        </section>
       </section>
     </main>
 

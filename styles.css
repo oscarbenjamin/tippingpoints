@@ -37,8 +37,8 @@ body {
   padding: 40px 0 56px;
 }
 
-.intro {
-  margin-bottom: 28px;
+.site-header {
+  margin-bottom: 44px;
 }
 
 .eyebrow {
@@ -51,7 +51,8 @@ body {
 }
 
 h1,
-h2 {
+h2,
+h3 {
   font-family: Georgia, "Times New Roman", serif;
 }
 
@@ -68,6 +69,35 @@ h1 {
   color: var(--muted);
   line-height: 1.7;
   font-size: 1.05rem;
+}
+
+.demo-section {
+  margin-bottom: 46px;
+}
+
+.section-copy {
+  margin-bottom: 22px;
+}
+
+.section-tag {
+  margin: 0 0 10px;
+  color: var(--accent-dark);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.section-copy h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.section-copy p {
+  margin: 12px 0 0;
+  max-width: 62rem;
+  color: var(--muted);
+  line-height: 1.7;
 }
 
 code {
@@ -99,6 +129,10 @@ code {
   color: #fffaf6;
 }
 
+.climate-button {
+  background: #1f6b8f;
+}
+
 .ghost-button {
   background: rgba(255, 255, 255, 0.52);
   color: var(--text);
@@ -115,6 +149,11 @@ code {
 .control-button:hover,
 .control-button:focus-visible {
   background: var(--accent-dark);
+}
+
+.climate-button:hover,
+.climate-button:focus-visible {
+  background: #134e69;
 }
 
 .readout {
@@ -163,6 +202,10 @@ code {
   font-size: 1.6rem;
 }
 
+.panel-header h3 {
+  margin: 0;
+  font-size: 1.6rem;
+}
 .panel-header p {
   margin: 8px 0 0;
   color: var(--muted);

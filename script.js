@@ -3,12 +3,24 @@
   const rhsCtx = rhsCanvas.getContext("2d");
   const timeCanvas = document.getElementById("timeseries-canvas");
   const timeCtx = timeCanvas.getContext("2d");
+  const climateCanvas = document.getElementById("climate-timeseries-canvas");
+  const climateCtx = climateCanvas.getContext("2d");
+  const iceCanvas = document.getElementById("ice-animation-canvas");
+  const iceCtx = iceCanvas.getContext("2d");
 
   const pValueEl = document.getElementById("p-value");
   const xValueEl = document.getElementById("x-value");
   const decreaseButton = document.getElementById("decrease-p");
   const increaseButton = document.getElementById("increase-p");
   const resetButton = document.getElementById("reset-system");
+  const toggleDemo1Button = document.getElementById("toggle-demo-1");
+  const emissionsValueEl = document.getElementById("emissions-value");
+  const co2ValueEl = document.getElementById("co2-value");
+  const iceValueEl = document.getElementById("ice-value");
+  const decreaseEmissionsButton = document.getElementById("decrease-emissions");
+  const increaseEmissionsButton = document.getElementById("increase-emissions");
+  const resetClimateButton = document.getElementById("reset-climate");
+  const toggleDemo2Button = document.getElementById("toggle-demo-2");
 
   const xDomain = { min: -1.8, max: 1.8 };
   const rhsRange = { min: -2.4, max: 2.4 };
@@ -16,9 +28,20 @@
   const dt = 0.02;
   const pStep = 0.035;
   const pLimits = { min: -0.65, max: 0.65 };
+  const climateDuration = 180;
+  const climateDt = 0.08;
+  const emissionsStep = 0.35;
+  const emissionsLimits = { min: 2.5, max: 13.5 };
+  const co2Baseline = 280;
+  const co2PpmPerGtC = 0.47;
+  const drawdownRate = 0.015;
+  const iceMeanRange = { min: 0, max: 8.5 };
 
   let state = createInitialState(-0.25);
+  let climateState = createClimateInitialState();
   let lastFrame = performance.now();
+  let demo1Running = true;
+  let demo2Running = true;
 
   function rhs(x, p) {
     return x - x * x * x + p;
@@ -36,6 +59,31 @@
       p: initialP,
       history: [{ time: 0, x: x0, p: initialP }],
     };
+  }
+
+  function createClimateInitialState() {
+    const emissions = 7.4;
+    const co2 = 323;
+    const forcing = co2ToForcing(co2);
+    const ice = findNegativeStableEquilibrium(forcing);
+
+    return {
+      time: 0,
+      emissions,
+      co2,
+      forcing,
+      ice,
+      history: [{ time: 0, emissions, co2, ice }],
+    };
+  }
+
+  function co2ToForcing(co2) {
+    return clamp((co2 - 340) / 95, -0.65, 0.65);
+  }
+
+  function iceStateToArea(iceState) {
+    const normalized = clamp((-iceState + 1.3) / 2.3, 0, 1);
+    return normalized * iceMeanRange.max;
   }
 
   function findNegativeStableEquilibrium(p) {
@@ -305,6 +353,160 @@
     timeCtx.fillText("p(t)", x + 30, y + 24);
   }
 
+  function drawClimateLegend() {
+    const x = climateCanvas.width - 188;
+    const y = 34;
+
+    climateCtx.font = "13px Helvetica Neue, Arial, sans-serif";
+    climateCtx.textAlign = "left";
+    climateCtx.textBaseline = "middle";
+
+    const items = [
+      { color: "#1f6b8f", label: "Emissions / 10" },
+      { color: "#c77900", label: "CO2 anomaly / 100" },
+      { color: "#167a5a", label: "Sea ice / 8" },
+    ];
+
+    items.forEach((item, index) => {
+      const yOffset = y + index * 24;
+      climateCtx.strokeStyle = item.color;
+      climateCtx.lineWidth = 3;
+      climateCtx.beginPath();
+      climateCtx.moveTo(x, yOffset);
+      climateCtx.lineTo(x + 22, yOffset);
+      climateCtx.stroke();
+      climateCtx.fillStyle = "#1f2933";
+      climateCtx.fillText(item.label, x + 30, yOffset);
+    });
+  }
+
+  function drawClimateTimeSeries() {
+    const { width, height } = climateCanvas;
+    climateCtx.clearRect(0, 0, width, height);
+
+    const bounds = { left: 68, right: width - 28, top: 22, bottom: height - 58 };
+    const latestTime = climateState.history[climateState.history.length - 1].time;
+    const earliestTime = Math.max(0, latestTime - climateDuration);
+    const xRange = { min: earliestTime, max: earliestTime + climateDuration };
+    const yRange = { min: 0, max: 1.8 };
+
+    const mapX = (t) => xToPx(t, bounds, xRange);
+    const mapY = (value) => yToPx(value, bounds, yRange);
+
+    drawAxes(
+      climateCtx,
+      bounds,
+      buildTimeTicks(earliestTime, climateDuration),
+      [0, 0.45, 0.9, 1.35, 1.8],
+      "years",
+      "scaled value",
+      mapX,
+      mapY
+    );
+
+    climateCtx.strokeStyle = "#1f6b8f";
+    climateCtx.lineWidth = 3;
+    traceScaledHistory(climateCtx, climateState.history, mapX, mapY, (entry) => entry.emissions / 10);
+
+    climateCtx.strokeStyle = "#c77900";
+    climateCtx.lineWidth = 3;
+    traceScaledHistory(
+      climateCtx,
+      climateState.history,
+      mapX,
+      mapY,
+      (entry) => (entry.co2 - co2Baseline) / 100
+    );
+
+    climateCtx.strokeStyle = "#167a5a";
+    climateCtx.lineWidth = 3;
+    traceScaledHistory(
+      climateCtx,
+      climateState.history,
+      mapX,
+      mapY,
+      (entry) => iceStateToArea(entry.ice) / 8
+    );
+
+    drawClimateLegend();
+  }
+
+  function traceScaledHistory(ctx, history, mapX, mapY, transform) {
+    ctx.beginPath();
+    let started = false;
+    history.forEach((entry) => {
+      const px = mapX(entry.time);
+      const py = mapY(transform(entry));
+      if (!started) {
+        ctx.moveTo(px, py);
+        started = true;
+      } else {
+        ctx.lineTo(px, py);
+      }
+    });
+    ctx.stroke();
+  }
+
+  function drawIceAnimation(nowSeconds) {
+    const { width, height } = iceCanvas;
+    iceCtx.clearRect(0, 0, width, height);
+
+    const centerX = width * 0.5;
+    const centerY = height * 0.54;
+    const area = iceStateToArea(climateState.ice);
+    const meanRadius = 46 + area * 14.5;
+    const seasonalPhase = ((climateState.time % 1) + nowSeconds * 0.02) * Math.PI * 2;
+    const seasonalAmplitude = 14 + area * 1.35;
+
+    const oceanGradient = iceCtx.createRadialGradient(centerX, centerY - 24, 40, centerX, centerY, 220);
+    oceanGradient.addColorStop(0, "rgba(189, 225, 244, 0.95)");
+    oceanGradient.addColorStop(1, "rgba(28, 85, 124, 0.96)");
+    iceCtx.fillStyle = oceanGradient;
+    iceCtx.fillRect(0, 0, width, height);
+
+    iceCtx.fillStyle = "rgba(255, 255, 255, 0.15)";
+    iceCtx.beginPath();
+    iceCtx.arc(centerX, centerY, 150, 0, Math.PI * 2);
+    iceCtx.fill();
+
+    iceCtx.beginPath();
+    for (let angle = 0; angle <= Math.PI * 2 + 0.05; angle += 0.05) {
+      const texture = Math.sin(angle * 5 + climateState.time * 0.45) * 4;
+      const pulse = Math.cos(angle * 3 - seasonalPhase) * seasonalAmplitude;
+      const radius = meanRadius + pulse + texture;
+      const px = centerX + Math.cos(angle) * radius * 1.18;
+      const py = centerY + Math.sin(angle) * radius * 0.82;
+
+      if (angle === 0) {
+        iceCtx.moveTo(px, py);
+      } else {
+        iceCtx.lineTo(px, py);
+      }
+    }
+    iceCtx.closePath();
+
+    const iceGradient = iceCtx.createRadialGradient(centerX - 24, centerY - 24, 14, centerX, centerY, 190);
+    iceGradient.addColorStop(0, "rgba(255, 255, 255, 0.98)");
+    iceGradient.addColorStop(0.7, "rgba(216, 239, 249, 0.96)");
+    iceGradient.addColorStop(1, "rgba(160, 205, 224, 0.94)");
+    iceCtx.fillStyle = iceGradient;
+    iceCtx.fill();
+
+    iceCtx.strokeStyle = "rgba(17, 67, 94, 0.24)";
+    iceCtx.lineWidth = 2;
+    iceCtx.stroke();
+
+    iceCtx.fillStyle = "#ffffff";
+    iceCtx.font = "700 18px Helvetica Neue, Arial, sans-serif";
+    iceCtx.textAlign = "left";
+    iceCtx.fillText(`Year ${Math.floor(climateState.time)}`, 24, 34);
+
+    iceCtx.font = "14px Helvetica Neue, Arial, sans-serif";
+    iceCtx.fillText(`CO2 ${climateState.co2.toFixed(0)} ppm`, 24, 58);
+    iceCtx.fillText(`Mean sea ice ${area.toFixed(1)} million km²`, 24, 80);
+    iceCtx.fillText("Winter growth and summer melt continue around a shrinking mean edge.", 24, height - 28);
+  }
+
   function integrateStep(stepDt) {
     const x = state.x;
     const p = state.p;
@@ -323,13 +525,57 @@
     }
   }
 
+  function integrateClimateStep(stepDt) {
+    const co2Tendency =
+      climateState.emissions * co2PpmPerGtC - drawdownRate * (climateState.co2 - co2Baseline);
+    climateState.co2 += co2Tendency * stepDt;
+    climateState.forcing = co2ToForcing(climateState.co2);
+
+    const x = climateState.ice;
+    const p = climateState.forcing;
+    const k1 = rhs(x, p);
+    const k2 = rhs(x + 0.5 * stepDt * k1, p);
+    const k3 = rhs(x + 0.5 * stepDt * k2, p);
+    const k4 = rhs(x + stepDt * k3, p);
+
+    climateState.ice = clamp(x + (stepDt / 6) * (k1 + 2 * k2 + 2 * k3 + k4), -2, 2);
+    climateState.time += stepDt;
+    climateState.history.push({
+      time: climateState.time,
+      emissions: climateState.emissions,
+      co2: climateState.co2,
+      ice: climateState.ice,
+    });
+
+    while (
+      climateState.history.length > 2 &&
+      climateState.history[1].time < climateState.time - climateDuration
+    ) {
+      climateState.history.shift();
+    }
+  }
+
   function updateReadouts() {
     pValueEl.textContent = state.p.toFixed(3);
     xValueEl.textContent = state.x.toFixed(3);
+    emissionsValueEl.textContent = `${climateState.emissions.toFixed(1)} GtC/yr`;
+    co2ValueEl.textContent = `${climateState.co2.toFixed(0)} ppm`;
+    iceValueEl.textContent = `${iceStateToArea(climateState.ice).toFixed(1)} million km²`;
+    toggleDemo1Button.textContent = demo1Running ? "Stop" : "Start";
+    toggleDemo2Button.textContent = demo2Running ? "Stop" : "Start";
   }
 
   function stepParameter(delta) {
     state.p = clamp(state.p + delta, pLimits.min, pLimits.max);
+    updateReadouts();
+  }
+
+  function stepEmissions(delta) {
+    climateState.emissions = clamp(
+      climateState.emissions + delta,
+      emissionsLimits.min,
+      emissionsLimits.max
+    );
     updateReadouts();
   }
 
@@ -338,15 +584,28 @@
     lastFrame = now;
 
     let remaining = elapsed;
-    while (remaining > 0) {
-      const stepDt = Math.min(dt, remaining);
-      integrateStep(stepDt);
-      remaining -= stepDt;
+    if (demo1Running) {
+      while (remaining > 0) {
+        const stepDt = Math.min(dt, remaining);
+        integrateStep(stepDt);
+        remaining -= stepDt;
+      }
+    }
+
+    let climateRemaining = elapsed;
+    if (demo2Running) {
+      while (climateRemaining > 0) {
+        const stepDt = Math.min(climateDt, climateRemaining * 5);
+        integrateClimateStep(stepDt);
+        climateRemaining -= stepDt / 5;
+      }
     }
 
     updateReadouts();
     drawRhsPlot();
     drawTimeSeriesPlot();
+    drawClimateTimeSeries();
+    drawIceAnimation(now / 1000);
     requestAnimationFrame(animate);
   }
 
@@ -359,9 +618,27 @@
     drawRhsPlot();
     drawTimeSeriesPlot();
   });
+  toggleDemo1Button.addEventListener("click", () => {
+    demo1Running = !demo1Running;
+    updateReadouts();
+  });
+  decreaseEmissionsButton.addEventListener("click", () => stepEmissions(-emissionsStep));
+  increaseEmissionsButton.addEventListener("click", () => stepEmissions(emissionsStep));
+  resetClimateButton.addEventListener("click", () => {
+    climateState = createClimateInitialState();
+    updateReadouts();
+    drawClimateTimeSeries();
+    drawIceAnimation(performance.now() / 1000);
+  });
+  toggleDemo2Button.addEventListener("click", () => {
+    demo2Running = !demo2Running;
+    updateReadouts();
+  });
 
   updateReadouts();
   drawRhsPlot();
   drawTimeSeriesPlot();
+  drawClimateTimeSeries();
+  drawIceAnimation(performance.now() / 1000);
   requestAnimationFrame(animate);
 })();
