@@ -7,6 +7,8 @@
   const climateCtx = climateCanvas.getContext("2d");
   const iceCanvas = document.getElementById("ice-animation-canvas");
   const iceCtx = iceCanvas.getContext("2d");
+  const iceImage = new Image();
+  iceImage.src = "arctic_sea_ice.webp";
 
   const pValueEl = document.getElementById("p-value");
   const xValueEl = document.getElementById("x-value");
@@ -455,8 +457,8 @@
     const centerY = height * 0.54;
     const area = iceStateToArea(climateState.ice);
     const meanRadius = 46 + area * 14.5;
-    const seasonalPhase = ((climateState.time % 1) + nowSeconds * 0.02) * Math.PI * 2;
-    const seasonalAmplitude = 14 + area * 1.35;
+    const seasonalCycle = ((climateState.time % 1) + nowSeconds * 0.02) * Math.PI * 2;
+    const seasonalAmplitude = (0.5 - 0.5 * Math.cos(seasonalCycle)) * (14 + area * 1.35);
 
     const oceanGradient = iceCtx.createRadialGradient(centerX, centerY - 24, 40, centerX, centerY, 220);
     oceanGradient.addColorStop(0, "rgba(189, 225, 244, 0.95)");
@@ -472,8 +474,8 @@
     iceCtx.beginPath();
     for (let angle = 0; angle <= Math.PI * 2 + 0.05; angle += 0.05) {
       const texture = Math.sin(angle * 5 + climateState.time * 0.45) * 4;
-      const pulse = Math.cos(angle * 3 - seasonalPhase) * seasonalAmplitude;
-      const radius = meanRadius + pulse + texture;
+      const shapeBias = 1 + 0.16 * Math.cos(angle - Math.PI / 2) - 0.1 * Math.cos(2 * angle);
+      const radius = meanRadius + seasonalAmplitude * shapeBias + texture;
       const px = centerX + Math.cos(angle) * radius * 1.18;
       const py = centerY + Math.sin(angle) * radius * 0.82;
 
@@ -485,12 +487,40 @@
     }
     iceCtx.closePath();
 
-    const iceGradient = iceCtx.createRadialGradient(centerX - 24, centerY - 24, 14, centerX, centerY, 190);
-    iceGradient.addColorStop(0, "rgba(255, 255, 255, 0.98)");
-    iceGradient.addColorStop(0.7, "rgba(216, 239, 249, 0.96)");
-    iceGradient.addColorStop(1, "rgba(160, 205, 224, 0.94)");
-    iceCtx.fillStyle = iceGradient;
-    iceCtx.fill();
+    if (iceImage.complete && iceImage.naturalWidth > 0) {
+      iceCtx.save();
+      iceCtx.clip();
+
+      const imageRatio = iceImage.naturalWidth / iceImage.naturalHeight;
+      const drawWidth = width * 0.88;
+      const drawHeight = drawWidth / imageRatio;
+      const imageX = (width - drawWidth) * 0.5;
+      const imageY = centerY - drawHeight * 0.5;
+
+      iceCtx.globalAlpha = 0.96;
+      iceCtx.drawImage(iceImage, imageX, imageY, drawWidth, drawHeight);
+
+      const gloss = iceCtx.createLinearGradient(0, centerY - 120, 0, centerY + 120);
+      gloss.addColorStop(0, "rgba(255, 255, 255, 0.28)");
+      gloss.addColorStop(1, "rgba(255, 255, 255, 0.02)");
+      iceCtx.fillStyle = gloss;
+      iceCtx.fillRect(0, 0, width, height);
+      iceCtx.restore();
+    } else {
+      const iceGradient = iceCtx.createRadialGradient(
+        centerX - 24,
+        centerY - 24,
+        14,
+        centerX,
+        centerY,
+        190
+      );
+      iceGradient.addColorStop(0, "rgba(255, 255, 255, 0.98)");
+      iceGradient.addColorStop(0.7, "rgba(216, 239, 249, 0.96)");
+      iceGradient.addColorStop(1, "rgba(160, 205, 224, 0.94)");
+      iceCtx.fillStyle = iceGradient;
+      iceCtx.fill();
+    }
 
     iceCtx.strokeStyle = "rgba(17, 67, 94, 0.24)";
     iceCtx.lineWidth = 2;
